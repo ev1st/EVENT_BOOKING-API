@@ -1,0 +1,350 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Booking API</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            color: #222;
+        }
+
+        header {
+            background: #273c75;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            color: #273c75;
+            margin-top: 0;
+        }
+
+        .event-card, .booking-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            background: #273c75;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #192a56;
+        }
+
+        .cancel-button {
+            background: #e84118;
+        }
+
+        .cancel-button:hover {
+            background: #c23616;
+        }
+
+        #message {
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Event Booking</h1>
+    <p>Бронируй билеты на интересные мероприятия</p>
+</header>
+
+<main>
+
+    <!-- Мероприятия -->
+    <section>
+        <h2>Доступные мероприятия</h2>
+        <div id="events-list">
+            Загрузка мероприятий...
+        </div>
+    </section>
+
+    <!-- Форма бронирования -->
+    <section>
+        <h2>Забронировать билеты</h2>
+
+        <div id="message"></div>
+
+        <form id="booking-form">
+
+            <label for="event_id">Мероприятие:</label>
+            <select id="event_id" required>
+                <option value="">Выберите мероприятие</option>
+            </select>
+
+            <label for="username">Имя пользователя:</label>
+            <input
+                type="text"
+                id="username"
+                minlength="4"
+                maxlength="50"
+                required
+                placeholder="Введите имя"
+            >
+
+            <label for="email">Email:</label>
+            <input
+                type="email"
+                id="email"
+                required
+                placeholder="example@mail.com"
+            >
+
+            <label for="tickets">Количество билетов:</label>
+            <input
+                type="number"
+                id="tickets"
+                min="1"
+                required
+                value="1"
+            >
+
+            <button type="submit">Забронировать</button>
+        </form>
+    </section>
+
+    <!-- Бронирования -->
+    <section>
+        <h2>Мои бронирования</h2>
+        <div id="bookings-list">
+            Загрузка бронирований...
+        </div>
+    </section>
+
+</main>
+
+<script>
+    // Загрузка мероприятий с backend
+    async function loadEvents() {
+        const eventsList = document.getElementById('events-list');
+        const eventSelect = document.getElementById('event_id');
+
+        try {
+            const response = await fetch('/events');
+
+            if (!response.ok) {
+                throw new Error('Не удалось загрузить мероприятия');
+            }
+
+            const events = await response.json();
+
+            eventsList.innerHTML = '';
+            eventSelect.innerHTML =
+                '<option value="">Выберите мероприятие</option>';
+
+            events.forEach(event => {
+                // Отображаем мероприятие
+                const card = document.createElement('div');
+                card.className = 'event-card';
+
+                card.innerHTML = `
+                    <h3>${event.title}</h3>
+                    <p>Дата: ${event.date}</p>
+                    <p>Место: ${event.place}</p>
+                    <p>Свободные места: ${event.seats}</p>
+                `;
+
+                eventsList.appendChild(card);
+
+                // Добавляем мероприятие в выпадающий список
+                const option = document.createElement('option');
+                option.value = event.id;
+                option.textContent = `${event.title} — ${event.date}`;
+
+                eventSelect.appendChild(option);
+            });
+
+            if (events.length === 0) {
+                eventsList.textContent = 'Мероприятий пока нет.';
+            }
+
+        } catch (error) {
+            eventsList.textContent = error.message;
+        }
+    }
+
+
+    // Создание бронирования
+    // Создание бронирования
+    document.getElementById('booking-form')
+    .addEventListener('submit', async function(event) {
+
+        event.preventDefault();
+
+        const bookingData = {
+            event_id: Number(document.getElementById('event_id').value),
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            tickets: Number(document.getElementById('tickets').value)
+        };
+
+        try {
+            const response = await fetch('/bookings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookingData)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || 'Ошибка бронирования');
+            }
+
+            alert('Бронирование успешно создано!');
+
+            this.reset();
+
+            // Обновляем список бронирований и мероприятия
+            await loadBookings();
+            await loadEvents();
+
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+
+
+    // Загрузка всех бронирований
+    async function loadBookings() {
+        const bookingsList = document.getElementById('bookings-list');
+
+        try {
+            const response = await fetch('/bookings');
+
+            if (!response.ok) {
+                throw new Error('Не удалось загрузить бронирования');
+            }
+
+            const bookings = await response.json();
+
+            bookingsList.innerHTML = '';
+
+            if (bookings.length === 0) {
+                bookingsList.textContent = 'Бронирований пока нет.';
+                return;
+            }
+
+            bookings.forEach(booking => {
+                const card = document.createElement('div');
+                card.className = 'booking-card';
+
+                card.innerHTML = `
+                    <h3>Бронирование №${booking.id}</h3>
+                    <p>Мероприятие ID: ${booking.event_id}</p>
+                    <p>Имя: ${booking.username}</p>
+                    <p>Email: ${booking.email}</p>
+                    <p>Количество билетов: ${booking.tickets}</p>
+                    <button class="cancel-button"
+                        onclick="deleteBooking(${booking.id})">
+                        Отменить бронирование
+                    </button>
+                `;
+
+                bookingsList.appendChild(card);
+            });
+
+        } catch (error) {
+            bookingsList.textContent = error.message;
+        }
+    }
+
+
+    // Отмена бронирования
+    async function deleteBooking(bookingId) {
+        const confirmed = confirm(
+            'Вы действительно хотите отменить бронирование?'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/bookings/${bookingId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || 'Ошибка отмены');
+            }
+
+            alert('Бронирование отменено');
+
+            // Обновляем данные после отмены
+            await loadBookings();
+            await loadEvents();
+
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+
+    // Загружаем данные при открытии страницы
+    loadEvents();
+    loadBookings();
+
+</script>
+
+</body>
+</html>
+```
